@@ -174,15 +174,17 @@ class DmsFile(models.Model):
             res.origin_id = res
         return res
 
-    def write(self, vals):
-        if (
-            not self.env.context.get("restore_old_revision", False)
-            and "active" in vals
-            and vals["active"]
+    def _check_cannot_unarchive_revision(self):
+        if not self.env.context.get("restore_old_revision") and any(
+            r.origin_id and r.origin_id != r for r in self
         ):
             raise exceptions.UserError(
                 _("Please use the restore button to activate this revision.")
             )
+
+    def write(self, vals):
+        if vals.get("active"):
+            self._check_cannot_unarchive_revision()
         if vals.get("content"):
             versions = self.filtered(lambda x: x.has_versioning)
             versions = versions.with_context(
