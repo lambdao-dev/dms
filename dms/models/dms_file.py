@@ -552,7 +552,8 @@ class File(models.Model):
             names = directory.sudo().file_ids.mapped("name")
         else:
             names = self.sudo().directory_id.file_ids.mapped("name")
-        default.update({"name": file.unique_name(self.name, names, self.extension)})
+        if not self.env.context.get("force_dms_file_name"):
+            default.update({"name": file.unique_name(self.name, names, self.extension)})
         return super(File, self).copy(default)
 
     @api.model_create_multi
