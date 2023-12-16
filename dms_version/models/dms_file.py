@@ -167,11 +167,12 @@ class DmsFile(models.Model):
         ]
         return res
 
-    @api.model
-    def create(self, values):
-        res = super().create(values)
-        if "origin_id" not in values:
-            res.origin_id = res
+    @api.model_create_multi
+    def create(self, vals_list):
+        res = super().create(vals_list)
+        for rec in res:
+            if not rec.origin_id:
+                rec.origin_id = rec
         return res
 
     def _check_cannot_unarchive_revision(self):
