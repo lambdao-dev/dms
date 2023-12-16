@@ -182,7 +182,8 @@ class DmsFile(models.Model):
         if vals.get("content"):
             versions = self.filtered(lambda x: x.has_versioning)
             super(DmsFile, versions).write({"active": False})
-            action = versions.with_context(new_vals=vals).create_revision()
+            versions = versions.with_context(new_vals=vals, force_dms_file_name=True)
+            action = versions.create_revision()
             res = self.search(action["domain"])
             if versions.ids == self.ids:
                 return res
@@ -206,6 +207,7 @@ class DmsFile(models.Model):
             max(self.origin_id.all_revision_ids.mapped("revision_number")) + 1
         )
         res["revision_number"] = max_new_rev_number
+        res["name"] = "%s-%02d" % (self.unrevisioned_name, max_new_rev_number)
         return res
 
     def action_restore_old_revision(self):
@@ -229,16 +231,6 @@ class DmsFile(models.Model):
         self.active = True
         self.origin_id.all_revision_ids.write({"current_revision_id": self.id})
         self.current_revision_id.write({"current_revision_id": False})
-
-    def copy_revision_with_context(self):
-        new_revision = super().copy_revision_with_context()
-        new_rev_number = new_revision.revision_number
-        new_revision.write(
-            {
-                "name": "%s-%02d" % (self.unrevisioned_name, new_rev_number),
-            }
-        )
-        return new_revision
 
     def get_html_link(self):
         self.ensure_one()
