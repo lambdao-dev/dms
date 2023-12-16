@@ -73,6 +73,8 @@ class DmsFile(models.Model):
 
     @api.constrains("unrevisioned_name", "revision_number", "directory_id")
     def check_unique_name_revision_number(self):
+        if self.env.context.get("ignore_revision_unique"):
+            return
         for rec in self:
             if rec.origin_id:
                 res = self.search_count(
@@ -92,6 +94,8 @@ class DmsFile(models.Model):
 
     @api.constrains("active", "origin_id")
     def check_unique_active_file(self):
+        if self.env.context.get("ignore_revision_unique"):
+            return
         for rec in self:
             if rec.origin_id:
                 res = self.search_count(
@@ -181,8 +185,9 @@ class DmsFile(models.Model):
             )
         if vals.get("content"):
             versions = self.filtered(lambda x: x.has_versioning)
-            super(DmsFile, versions).write({"active": False})
-            versions = versions.with_context(new_vals=vals, force_dms_file_name=True)
+            versions = versions.with_context(
+                new_vals=vals, force_dms_file_name=True, ignore_revision_unique=True
+            )
             action = versions.create_revision()
             res = self.search(action["domain"])
             if versions.ids == self.ids:
